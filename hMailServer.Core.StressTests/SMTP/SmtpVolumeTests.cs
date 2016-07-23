@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Mail;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using hMailServer.Core.IntegrationTests;
@@ -17,13 +14,18 @@ namespace hMailServer.Core.StressTests.SMTP
     [TestFixture]
     public class SmtpVolumeTests
     {
+
         [Test]
         public void TestSendManyMessagesOnSeparateConnections()
         {
             Func<ISession> connectionFactory = () =>
                 new SmtpServerSession(new InMemoryCommandHandler(), new NullLog(), new SmtpServerSessionConfiguration());
 
-            var serverConfiguration = new ServerConfiguration();
+            var serverConfiguration = new ServerConfiguration
+            {
+                    IpAddress = IPAddress.Parse("127.0.0.1"),
+                    Port = 25
+                };
 
             var smtpServer = new Server(connectionFactory, new NullLog(), serverConfiguration);
             var runTask = smtpServer.RunAsync();
@@ -50,7 +52,11 @@ namespace hMailServer.Core.StressTests.SMTP
             Func<ISession> connectionFactory = () =>
                 new SmtpServerSession(new InMemoryCommandHandler(), new NullLog(), new SmtpServerSessionConfiguration());
 
-            var serverConfiguration = new ServerConfiguration();
+            var serverConfiguration = new ServerConfiguration
+            {
+                    IpAddress = IPAddress.Parse("127.0.0.1"),
+                    Port = 25
+                };
 
             var smtpServer = new Server(connectionFactory, new NullLog(), serverConfiguration);
             var runTask = smtpServer.RunAsync();

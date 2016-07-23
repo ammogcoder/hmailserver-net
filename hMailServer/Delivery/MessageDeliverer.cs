@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using hMailServer.Core;
@@ -9,31 +12,36 @@ using hMailServer.Core.Entities;
 using hMailServer.Core.Logging;
 using hMailServer.Entities;
 using hMailServer.Repository;
+using MimeKit;
 using StructureMap;
 
 namespace hMailServer.Delivery
 {
     class MessageDeliverer
     {
-        private readonly IContainer _container;
-
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private CancellationToken _cancellationToken;
 
-        private ILog _log;
+        private readonly ILog _log;
+        private readonly IMessageRepository _messageRepository;
+        private readonly IAccountRepository _accountRepository;
+        private readonly IFolderRepository _folderRepository;
+        private readonly IDnsClient _dnsClient;
 
-        public MessageDeliverer(IContainer container)
+        public MessageDeliverer(IMessageRepository messageRepository, IAccountRepository accountRepository,  IDnsClient dnsClient, ILog log, IFolderRepository folderRepository)
         {
-            _container = container;
             _cancellationToken = _cancellationTokenSource.Token;
 
-            _log = _container.GetInstance<ILog>();
-
+            _messageRepository = messageRepository;
+            _accountRepository = accountRepository;
+            _dnsClient = dnsClient;
+            _log = log;
+            _folderRepository = folderRepository;
         }
 
         public async Task RunAsync()
         {
-            var messageRepository = _container.GetInstance<IMessageRepository>();
+            var messageRepository = _messageRepository;
 
             while (true)
             {
@@ -45,6 +53,8 @@ namespace hMailServer.Delivery
                 {
                     try
                     {
+                        // TODO: This should not be done using await. Let it return a task and call ContinueWith so that
+                        // we can support parallell deliveries.
                         await DeliverMessageAsync(message);
                     }
                     catch (Exception ex)
@@ -76,11 +86,6 @@ namespace hMailServer.Delivery
 
         private async Task DeliverMessageAsync(Message message)
         {
-            var accountRepository = _container.GetInstance<IAccountRepository>();
-            var messageRepository = _container.GetInstance<IMessageRepository>();
-            var folderRepository = _container.GetInstance<IFolderRepository>();
-            var dnsClient = _container.GetInstance<IDnsClient>();
-
             message.NumberOfDeliveryAttempts++;
 
             bool isLastAttempt = message.NumberOfDeliveryAttempts >= 3;
@@ -91,10 +96,10 @@ namespace hMailServer.Delivery
             {
                 var remainingRecipients = new List<Recipient>(message.Recipients);
 
-                var localDelivery = new LocalDelivery(accountRepository, messageRepository, folderRepository, _log);
+                var localDelivery = new LocalDelivery(_accountRepository, _messageRepository, _folderRepository, _log);
                 deliveryResults.AddRange(await localDelivery.DeliverAsync(message, remainingRecipients.Where(recipient => recipient.AccountId != 0).ToList()));
 
-                var externalDelivery = new ExternalDelivery(messageRepository, dnsClient, _log);
+                var externalDelivery = new ExternalDelivery(_messageRepository, _dnsClient, _log);
                 deliveryResults.AddRange(await externalDelivery.DeliverAsync(message, remainingRecipients.Where(recipient => recipient.AccountId == 0).ToList()));
 
                 var failedRecipients =
@@ -108,7 +113,7 @@ namespace hMailServer.Delivery
 
                 if (isLastAttempt  || !deliveryCompleted)
                 {
-                    await messageRepository.DeleteAsync(message);
+                    await _messageRepository.DeleteAsync(message);
                 }
             }
             catch (Exception ex)
@@ -129,11 +134,11 @@ namespace hMailServer.Delivery
 
                 if (isLastAttempt)
                 {
-                    await messageRepository.DeleteAsync(message);
+                    await _messageRepository.DeleteAsync(message);
                 }
                 else
                 {
-                    await messageRepository.UpdateAsync(message);
+                    await _messageRepository.UpdateAsync(message);
                 }
 
             }
@@ -147,8 +152,19 @@ namespace hMailServer.Delivery
             if (IsMailerDaemonAddress(message.From))
                 return;
 
-            // TODO: Dont' hardcode this.
-            string bounceMessage = string.Format(@"Your message did not reach some or all of the intended recipients.
+            DateTimeOffset sent;
+            string subject;
+
+            using (var messageData = _messageRepository.GetMessageData(message))
+            {
+                var originialMimeMessage = MimeMessage.Load(messageData);
+
+                sent = originialMimeMessage.Date;
+                subject = originialMimeMessage.Subject;
+            }
+
+                // TODO: Dont' hardcode this.
+            string bounceMessageBody = @"Your message did not reach some or all of the intended recipients.
 
    Sent: %MACRO_SENT%
    Subject: %MACRO_SUBJECT%
@@ -157,8 +173,59 @@ The following recipient(s)could not be reached:
 
 %MACRO_RECIPIENTS%
 
-hMailServer");
+hMailServer";
 
+            bounceMessageBody = bounceMessageBody.Replace("%MACRO_SENT%", sent.ToString());
+            bounceMessageBody = bounceMessageBody.Replace("%MACRO_SUBJECT", subject);
+
+            var recipientList = new StringBuilder();
+
+            foreach (var failedRecipient in failedRecipients)
+            {
+                recipientList.AppendFormat("Recipient: {0}\r\n", failedRecipient.Recipient);
+                recipientList.AppendFormat("Message: {1}\r\n", failedRecipient.ResultMessage);
+                recipientList.AppendLine();
+            }
+
+            bounceMessageBody = bounceMessageBody.Replace("%MACRO_RECIPIENTS%", recipientList.ToString());
+
+            var mimeMessage = new MimeMessage();
+            // TODO: Sender address should be generated off domain name.
+            mimeMessage.From.Add(new MailboxAddress("", "mailer-daemon@" + Environment.MachineName));
+            mimeMessage.To.Add(new MailboxAddress("", message.From));
+
+            // TODO: Don't hard-code
+            mimeMessage.Subject = "Delivery failure";
+
+            mimeMessage.Body = new TextPart("plain")
+                {
+                    Text = bounceMessageBody
+                };
+
+
+            // TODO: Don't hardcode buffer size.
+            using (var mailStream = new MemoryStreamWithFileBacking(10000))
+            {
+                mimeMessage.WriteTo(mailStream, CancellationToken.None);
+
+                var bounceMessage = new Message()
+                    {
+                        Recipients = new List<Recipient>()
+                        {
+                            new Recipient()
+                            {
+                                Address = message.From,
+                                OriginalAddress = message.From
+                            }
+                        },
+                        From = "mailer-daemon" + Environment.MachineName,
+                        Size = mailStream.Length,
+                        State = MessageState.Delivering,
+                    };
+
+                await _messageRepository.InsertAsync(bounceMessage);
+            }
+                
             throw new NotImplementedException();
 
         }

@@ -2,12 +2,14 @@
 using hMailServer.Application;
 using hMailServer.Configuration;
 using hMailServer.Core;
+using hMailServer.Core.Dns;
 using hMailServer.Core.Protocols.POP3;
 using hMailServer.Core.Protocols.SMTP;
 using hMailServer.Delivery;
 using hMailServer.Dns;
 using hMailServer.Protocols.POP3;
 using hMailServer.Protocols.SMTP;
+using hMailServer.Repository;
 using StructureMap;
 
 namespace hMailServer
@@ -50,11 +52,13 @@ namespace hMailServer
 
 
 
-            var deliverer = new MessageDeliverer(container);
+            var messageRepository = container.GetInstance<IMessageRepository>();
+            var accountRepository = container.GetInstance<IAccountRepository>();
+            var dnsClient = container.GetInstance<IDnsClient>();
+            var folderRepository = container.GetInstance<IFolderRepository>();
+
+            var deliverer = new MessageDeliverer(messageRepository, accountRepository, dnsClient, log, folderRepository);
             var delivererTask = deliverer.RunAsync();
-
-
-
 
 
             var pop3Server = new Server(pop3SessionFactory, log, pop3ServerConfiguration);
