@@ -9,7 +9,7 @@ using hMailServer.Core.Protocols.SMTP;
 using NUnit.Framework;
 using hMailServer.Tests.Common;
 using MimeKit;
-using NUnit.Framework.Compatibility;
+using System.Diagnostics;
 
 namespace hMailServer.Core.StressTests
 {

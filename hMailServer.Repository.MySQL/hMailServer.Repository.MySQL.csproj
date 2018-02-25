@@ -1,96 +1,19 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{FF4052BF-4CCA-4075-BCD5-4933F96604BA}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>hMailServer.Repository.MySQL</RootNamespace>
-    <AssemblyName>hMailServer.Repository.MySQL</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="Dapper, Version=1.50.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Dapper.1.50.1\lib\net451\Dapper.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Dapper.SimpleCRUD, Version=1.11.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Dapper.SimpleCRUD.1.11.1\lib\net45\Dapper.SimpleCRUD.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="MySql.Data, Version=6.9.9.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
-      <HintPath>..\packages\MySql.Data.6.9.9\lib\net45\MySql.Data.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Data.Linq" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
+    <PackageReference Include="Dapper" Version="1.50.4" />
+    <PackageReference Include="MySql.Data" Version="6.10.6" />
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="FolderRepository.cs" />
-    <Compile Include="MessageRepository.cs" />
-    <Compile Include="AccountRepository.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RepositoryFactory.cs" />
+    <ProjectReference Include="..\hMailServer.Core\hMailServer.Core.csproj" />
+    <ProjectReference Include="..\hMailServer.Crypto\hMailServer.Crypto.csproj" />
+    <ProjectReference Include="..\hMailServer.Repository.RelationalShared\hMailServer.Repository.RelationalShared.csproj" />
+    <ProjectReference Include="..\hMailServer.Repository\hMailServer.Repository.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\hMailServer.Core\hMailServer.Core.csproj">
-      <Project>{E8D2635C-2E1E-452A-BC0A-1C7A13132C81}</Project>
-      <Name>hMailServer.Core</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\hMailServer.Crypto\hMailServer.Crypto.csproj">
-      <Project>{5eaf12ed-178b-4fee-b74f-898ed13e5092}</Project>
-      <Name>hMailServer.Crypto</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\hMailServer.Entities\hMailServer.Entities.csproj">
-      <Project>{4d1f88cb-b51b-4a3b-ac22-8ce9c2103b24}</Project>
-      <Name>hMailServer.Entities</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\hMailServer.Repository.RelationalShared\hMailServer.Repository.RelationalShared.csproj">
-      <Project>{8d802cf4-7eb6-4837-9f18-2ed821513344}</Project>
-      <Name>hMailServer.Repository.RelationalShared</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\hMailServer.Repository\hMailServer.Repository.csproj">
-      <Project>{d3883ca7-99d2-4ef3-9239-c63d9fc346d4}</Project>
-      <Name>hMailServer.Repository</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>
