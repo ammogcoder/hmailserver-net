@@ -60,7 +60,7 @@ namespace hMailServer.Core.StressTests
 
             var receivedAttachment = (MimePart)message.Attachments.First();
 
-            receivedAttachment.ContentObject.DecodeTo(attachmentStream);
+            receivedAttachment.Content.DecodeTo(attachmentStream);
 
             var bodyInReceivedAttachment = Encoding.ASCII.GetString(attachmentStream.ToArray());
             Assert.AreEqual(body.ToString(), bodyInReceivedAttachment);
@@ -82,7 +82,7 @@ namespace hMailServer.Core.StressTests
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            using (var client = new SmtpClient(smtpServer.LocalEndpoint.Address.ToString(), smtpServer.LocalEndpoint.Port))
+            using (var client = new SmtpClient("127.0.0.1", smtpServer.LocalEndpoint.Port))
             using (var message = new MailMessage())
             {
                 message.From = new MailAddress("sender@example.com");

@@ -36,7 +36,7 @@ namespace hMailServer.Repository.MySQL
             {
                 sqlConnection.Open();
                 
-                var messageId = await sqlConnection.InsertAsync<long>(message);
+                var messageId = await sqlConnection.InsertAsync<long, Message>(message);
 
                 message.Id = messageId;
             }
@@ -55,7 +55,7 @@ namespace hMailServer.Repository.MySQL
             {
                 sqlConnection.Open();
 
-                var messageId = await sqlConnection.InsertAsync<long>(message);
+                var messageId = await sqlConnection.InsertAsync<long, Message>(message);
 
                 message.Id = messageId;
             }
@@ -239,7 +239,7 @@ namespace hMailServer.Repository.MySQL
             {
                 sqlConnection.Open();
 
-                var messageRecipientId = await sqlConnection.InsertAsync<long>(messageRecipient);
+                var messageRecipientId = await sqlConnection.InsertAsync<long, Recipient>(messageRecipient);
 
                 messageRecipient.Id = messageRecipientId;
             }

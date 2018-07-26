@@ -8,6 +8,7 @@ using System.Net.Http.Headers;
 using System.Net.Mail;
 using System.Net.Security;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
@@ -75,8 +76,7 @@ namespace hMailServer.Core.IntegrationTests
         {
             var commandHandler = new InMemoryCommandHandler();
 
-            var certificate = new X509Certificate2();
-            certificate.Import(Resources.debugcert, "secret", X509KeyStorageFlags.Exportable);
+            var certificate = new X509Certificate2(Resources.debugcert, "secret", X509KeyStorageFlags.Exportable);
 
             var smtpSessionConfiguration = new SmtpServerSessionConfiguration()
                 {

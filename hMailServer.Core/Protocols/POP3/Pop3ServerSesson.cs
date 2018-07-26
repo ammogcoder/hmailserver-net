@@ -235,7 +235,7 @@ namespace hMailServer.Core.Protocols.POP3
             await SendCommandResult(new Pop3CommandReply(true, "CAPA list follows\r\nUSER\r\nUIDL\r\nTOP\r\n."));
         }
 
-        private async Task HandleStls()
+        private Task HandleStls()
         {
             throw new NotImplementedException();
         }

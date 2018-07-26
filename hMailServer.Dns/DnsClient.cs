@@ -3,23 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using ARSoft.Tools.Net;
-using ARSoft.Tools.Net.Dns;
+using DnsClient;
+using DnsClient.Protocol;
 using hMailServer.Core.Dns;
 
 namespace hMailServer.Dns
 {
     public class DnsClient : IDnsClient
     {
-        private readonly ARSoft.Tools.Net.Dns.DnsClient _dnsClient;
-
+        
         public DnsClient()
         {
-            _dnsClient = new ARSoft.Tools.Net.Dns.DnsClient(ARSoft.Tools.Net.Dns.DnsClient.GetLocalConfiguredDnsServers(), 10000);
+            
         }
 
         public async Task<List<IPAddress>> ResolveMxIpAddressesAsync(string domainName)
         {
+            var lookupClient = new LookupClient();
+
             var hostNames = await ResolveMxHostNamesAsync(domainName);
 
             var result = new List<IPAddress>();
@@ -27,16 +28,16 @@ namespace hMailServer.Dns
             foreach (var hostName in hostNames)
             {
                 // TODO: Query for IPV6 as well.
-                var dnsMessage = await _dnsClient.ResolveAsync(DomainName.Parse(hostName), RecordType.A);
+                var dnsQueryResponse = await lookupClient.QueryAsync(hostName, QueryType.A);
 
-                if (IsFailedQuery(dnsMessage))
+                if (dnsQueryResponse.HasError)
                 {
                     // TODO: Throw specific type
                     throw new Exception($"Dns query for {domainName} failed.");
                 }
 
                 var aRecords =
-                    dnsMessage.AnswerRecords.OfType<ARecord>();
+                    dnsQueryResponse.Answers.ARecords();
 
                 result.AddRange(from record in aRecords
                                 select record.Address);
@@ -47,27 +48,25 @@ namespace hMailServer.Dns
 
         private async Task<List<string>> ResolveMxHostNamesAsync(string domainName)
         {
-            var dnsMessage = await _dnsClient.ResolveAsync(DomainName.Parse(domainName), RecordType.Mx);
+            var lookupClient = new LookupClient();
 
-            if (IsFailedQuery(dnsMessage))
+            var dnsQueryResponse = await lookupClient.QueryAsync(domainName, QueryType.MX);
+
+            if (dnsQueryResponse.HasError)
             {
                 // TODO: Throw specific type
                 throw new Exception($"Dns query for {domainName} failed.");
             }
 
-            var mxRecordsByPreference = 
-                dnsMessage.AnswerRecords.OfType<MxRecord>().OrderBy(item => item.Preference);
+            var mxRecordsByPreference =
+                dnsQueryResponse.Answers.MxRecords().OrderBy(item => item.Preference);
 
             var result =
                 (from record in mxRecordsByPreference
-                 select record.ExchangeDomainName.ToString().ToLowerInvariant()).Distinct().ToList();
+                 select record.Exchange.Original.ToString().ToLowerInvariant()).Distinct().ToList();
 
             return result;
         }
 
-        private bool IsFailedQuery(DnsMessage message)
-        {
-            return message == null || (message.ReturnCode != ReturnCode.NoError && message.ReturnCode != ReturnCode.NxDomain);
-        }
     }
 }

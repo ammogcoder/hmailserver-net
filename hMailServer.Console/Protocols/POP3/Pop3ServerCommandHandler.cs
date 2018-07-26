@@ -67,7 +67,7 @@ namespace hMailServer.Protocols.POP3
             return Task.Run(() => new Pop3CommandReply(true, builder.ToString()));
         }
 
-        public async Task<Stream> HandleRetr(int messageNumber)
+        public Task<Stream> HandleRetr(int messageNumber)
         {
             if (messageNumber > _messages.Count)
                 return null;
@@ -78,7 +78,12 @@ namespace hMailServer.Protocols.POP3
                 return null;
 
             var messageRepository = _container.GetInstance<IMessageRepository>();
-            return messageRepository.GetMessageData(_account, message);
+            var stream = messageRepository.GetMessageData(_account, message);
+
+            var task = new TaskCompletionSource<Stream>();
+            task.SetResult(stream);
+            
+            return task.Task;
         }
 
         public Task<Pop3CommandReply> HandleDele(int messageNumber)

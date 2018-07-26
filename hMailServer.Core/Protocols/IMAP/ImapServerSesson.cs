@@ -66,13 +66,13 @@ namespace hMailServer.Core.Protocols.IMAP
 
         public Protocol Protocol => Protocol.IMAPD;
 
-        private async Task HandleRset()
+        private Task HandleRset()
         {
             throw new NotImplementedException();
             //   await SendCommandResult(_commandHandler.HandleRset());
         }
 
-        private async Task HandleQuit()
+        private Task HandleQuit()
         {
             throw new NotImplementedException();
             //   await SendCommandResult(_commandHandler.HandleQuit());

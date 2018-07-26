@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ARSoft.Tools.Net" Version="2.2.9" />
+    <PackageReference Include="DnsClient" Version="1.1.1" />
   </ItemGroup>
 
   <ItemGroup>

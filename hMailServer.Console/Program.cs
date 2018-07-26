@@ -18,7 +18,7 @@ namespace hMailServer
     {
         static void Main(string[] args)
         {
-            var client = new DnsClient();
+            var client = new hMailServer.Dns.DnsClient();
 
             var log = new Log();
 
